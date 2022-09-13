@@ -12,6 +12,7 @@
   "author": "Benjamin Possible",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-sts": "^3.169.0",
     "@aws-sdk/signature-v4": "^3.130.0",
     "aws-sdk": "^2.1208.0",
     "body-parser": "^1.20.0",
