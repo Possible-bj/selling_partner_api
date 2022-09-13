@@ -1,77 +1,31 @@
 import { SignatureV4 } from '@aws-sdk/signature-v4'
-import { STSClient, AssumeRoleCommand } from "@aws-sdk/client-sts";
-import crypto from "crypto"
-// import moment from "moment"
+import crypto from '@aws-crypto/sha256-js'
 import fetch from 'node-fetch'
 
 export default async (accessToken) => {
-  const credentials = {}
-  // const credentials = {
-  //   accessKeyId: process.env.ACCESSKEYID,
-  //   secretAccessKey: process.env.SECRETACCESSKEY
-  // }
-  // Set the AWS Region.
-  const REGION = "us-east-1"; //e.g. "us-east-1"
-  // Create an Amazon STS service client object.
-  const stsClient = new STSClient({ region: REGION });
-  // export { stsClient };
-
-
-  // Set the parameters;
-  const params = {
-    RoleSessionName: 'Test',
-    RoleArn: 'arn:aws:iam::807923402431:role/manifest-sp-api-role',
-    DurationSeconds: 3600
+  const credentials = {
+    accessKeyId: process.env.ACCESSKEYID,
+    secretAccessKey: process.env.SECRETACCESSKEY
   }
 
+  const StsSignature = new SignatureV4({
+    credentials: {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+    },
+    region: 'us-east-1',
+    service: 'sts',
+    sha256: crypto.Sha256
+  })
 
-  try {
-    //Assume Role
-    const data = await stsClient.send(new AssumeRoleCommand(params));
-    // return data;
-    credentials.accessKeyId = data.Credentials.AccessKeyId
-    credentials.secretAccessKey = data.Credentials.SecretAccessKey
-    credentials.sessionToken = data.Credentials.SessionToken
+  const stsHeaders = { host: 'sts.amazonaws.com', }
 
-  } catch (err) {
-    console.log("Error", err);
-  }
+  const stsUrl = `https://sts.amazonaws.com/?Version=2011-06-15&Action=AssumeRole&RoleSessionName=Test&RoleArn=arn:aws:iam::807923402431:role/manifest-sp-api-role&DurationSeconds=3600`
 
-
-  class Sha256Constructor {
-    constructor(key = '') {
-      this._hmac = crypto.createHmac('sha256', key)
-    }
-
-    update(message) {
-      return this._hmac.update(message)
-    }
-
-    digest() {
-      return this._hmac.digest()
-    }
-  }
-  // sessionToken: credentials.SessionToken,
-  // expiration: credentials.Expiration,
-
-  // const StsSignature = new SignatureV4({
-  //   credentials: {
-  //     accessKeyId: credentials.accessKeyId,
-  //     secretAccessKey: credentials.secretAccessKey,
-  //   },
-  //   region: 'us-east-1',
-  //   service: 'sts',
-  //   sha256: Sha256Constructor
-  // })
-
-  // const stsHeaders = { host: 'sts.amazonaws.com', }
-
-  // const stsUrl = `https://sts.amazonaws.com/?Version=2011-06-15&Action=AssumeRole&RoleSessionName=Test&RoleArn=arn:aws:iam::807923402431:role/manifest-sp-api-role&DurationSeconds=3600`
-
-  // const stsSignedRequest = await StsSignature.sign({ path: stsUrl, headers: stsHeaders, method: 'GET', protocol: 'https', hostname: 'sts.amazonaws.com' })
-  // const stsRes = await fetch(stsSignedRequest.path, { headers: stsSignedRequest.headers })
-  // const stsData = await stsRes.text()
-  // console.log(stsData)
+  const stsSignedRequest = await StsSignature.sign({ path: stsUrl, headers: stsHeaders, method: 'GET', protocol: 'https', hostname: 'sts.amazonaws.com' })
+  const stsRes = await fetch(stsSignedRequest.path, { headers: stsSignedRequest.headers })
+  const stsData = await stsRes.text()
+  console.log(stsData)
 
   // const now = new Date()
   // const date = (now).toISOString().replace(/[\-:]/g, "");
@@ -85,7 +39,7 @@ export default async (accessToken) => {
     },
     region: 'us-east-1',
     service: 'execute-api',
-    sha256: Sha256Constructor
+    sha256: crypto.Sha256
   })
   const headers = { host: 'sellingpartnerapi-na.amazon.com', 'user-agent': 'manifest-sp-api/1.0 (Language=JavaScript)', 'x-amz-access-token': accessToken }
 
