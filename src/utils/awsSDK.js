@@ -32,6 +32,29 @@ export default async (accessToken) => {
   // sessionToken: credentials.SessionToken,
   // expiration: credentials.Expiration,
 
+  const StsSignature = new SignatureV4({
+    credentials: {
+      accessKeyId: credentials.accessKeyId,
+      secretAccessKey: credentials.secretAccessKey,
+    },
+    region: 'us-east-1',
+    service: 'sts',
+    sha256: Sha256Constructor
+  })
+
+  const stsHeaders = { host: 'sts.amazonaws.com', }
+
+  const stsUrl = `https://sts.amazonaws.com/?Version=2011-06-15&Action=AssumeRole&RoleSessionName=Test&RoleArn=arn:aws:iam::807923402431:role/manifest-sp-api-role&DurationSeconds=3600`
+
+  const stsSignedRequest = await StsSignature.sign({ path: stsUrl, headers: stsHeaders, method: 'GET', protocol: 'https', hostname: 'sts.amazonaws.com' })
+  const stsRes = await fetch(stsSignedRequest.path, { headers: stsSignedRequest.headers })
+  const stsData = await stsRes.text()
+  console.log(stsData)
+
+  // const now = new Date()
+  // const date = (now).toISOString().replace(/[\-:]/g, "");
+  // const xAmzDate = `${date.substring(0, date.length - 5)}Z`
+  // console.log(xAmzDate)
   const Signature = new SignatureV4({
     credentials: {
       accessKeyId: credentials.accessKeyId,
@@ -41,19 +64,6 @@ export default async (accessToken) => {
     service: 'execute-api',
     sha256: Sha256Constructor
   })
-  const stsHeaders = { host: 'sts.amazonaws.com', }
-
-  const stsUrl = `https://sts.amazonaws.com/?Version=2011-06-15&Action=AssumeRole&RoleSessionName=Test&RoleArn=arn:aws:iam::807923402431:role/manifest-sp-api-role&DurationSeconds=3600`
-
-  const stsSignedRequest = await Signature.sign({ path: stsUrl, headers: stsHeaders, method: 'GET', protocol: 'https', hostname: 'sts.amazonaws.com' })
-  const stsRes = await fetch(stsSignedRequest.path, { headers: stsSignedRequest.headers })
-  const stsData = await stsRes.text()
-  console.log(stsData)
-
-  // const now = new Date()
-  // const date = (now).toISOString().replace(/[\-:]/g, "");
-  // const xAmzDate = `${date.substring(0, date.length - 5)}Z`
-  // console.log(xAmzDate)
   const headers = { host: 'sellingpartnerapi-na.amazon.com', 'user-agent': 'manifest-sp-api/1.0 (Language=JavaScript)', 'x-amz-access-token': accessToken }
 
   const url = `https://sellingpartnerapi-na.amazon.com/sellers/v1/marketplaceParticipations`
