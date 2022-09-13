@@ -1,5 +1,5 @@
 import { SignatureV4 } from '@aws-sdk/signature-v4'
-import AWS from 'aws-sdk'
+// import AWS from 'aws-sdk'
 import crypto from "crypto"
 // import moment from "moment"
 import fetch from 'node-fetch'
@@ -9,21 +9,12 @@ export default async (accessToken) => {
     accessKeyId: process.env.ACCESSKEYID,
     secretAccessKey: process.env.SECRETACCESSKEY
   }
-  const params = {
-    RoleSessionName: 'Test',
-    RoleArn: 'arn:aws:iam::807923402431:role/manifest-sp-api-role',
-    DurationSeconds: 3600
-  }
-  AWS.config.correctClockSkew = true
-  AWS.config.update({ region: 'us-east-1', credentials });
-  // let credentialData = [];
-  const sts = new AWS.STS({ apiVersion: '2011-06-15' });
-  sts.assumeRole(params, function (err, data) {
-    if (err) console.log(err, err.stack); // an error occurred
-    else {
-      console.log(data)
-    }   // successful response
-  });
+  // const params = {
+  //   RoleSessionName: 'Test',
+  //   RoleArn: 'arn:aws:iam::807923402431:role/manifest-sp-api-role',
+  //   DurationSeconds: 3600
+  // }
+
 
   class Sha256Constructor {
     constructor(key = '') {
@@ -50,6 +41,14 @@ export default async (accessToken) => {
     service: 'execute-api',
     sha256: Sha256Constructor
   })
+  const stsHeaders = { host: 'sts.amazonaws.com', }
+
+  const stsUrl = `https://sts.amazonaws.com/?Version=2011-06-15&Action=AssumeRole&RoleSessionName=Test&RoleArn=arn:aws:iam::807923402431:role/manifest-sp-api-role&DurationSeconds=3600`
+
+  const stsSignedRequest = await Signature.sign({ path: stsUrl, headers: stsHeaders, method: 'GET', protocol: 'https', hostname: 'sts.amazonaws.com' })
+  const stsRes = await fetch(stsSignedRequest.path, { headers: stsSignedRequest.headers })
+  const stsData = await stsRes.text()
+  console.log(stsData)
 
   // const now = new Date()
   // const date = (now).toISOString().replace(/[\-:]/g, "");
@@ -64,7 +63,7 @@ export default async (accessToken) => {
   try {
     const res = await fetch(signedRequest.path, { headers: signedRequest.headers })
     const data = await res.json()
-    console.log(res)
+    // console.log(res)
     return (data)
   } catch (error) {
     throw new Error(error.message)
